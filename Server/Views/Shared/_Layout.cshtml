@@ -1,0 +1,29 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - LoadChildOnDemand</title>
+    <link rel="stylesheet" href="~/LoadChildOnDemand.styles.css" asp-append-version="true" />
+    
+    @* Syncfusion Essential JS 2 Styles and Scripts *@
+    <link rel="stylesheet" href="https://cdn.syncfusion.com/ej2/28.2.6/material.css" />
+    <script src="https://cdn.syncfusion.com/ej2/28.2.6/dist/ej2.min.js" type="text/javascript"></script>
+</head>
+<body>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2023 - LoadChildOnDemand - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <ejs-scripts></ejs-scripts>
+</body>
+</html>

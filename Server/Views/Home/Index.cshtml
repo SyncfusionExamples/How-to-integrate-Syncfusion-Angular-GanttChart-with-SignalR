@@ -1,0 +1,23 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+@using Syncfusion.EJ2
+
+<div>
+
+    @(Html.EJS().Gantt("DefaultFunctionalities").DataSource(dataManger =>
+        {
+            dataManger.Url("Home/DataSource").BatchUrl("Home/BatchUpdate").CrossDomain(true).Adaptor("UrlAdaptor");
+        })
+        .Height("450px")
+        .Toolbar(new List<string>(){ "Add", "Cancel", "CollapseAll", "Delete", "Edit", "ExpandAll", "NextTimeSpan", "PrevTimeSpan", "Search", "Update","ZoomIn","ZoomOut","ZoomToFit" })
+        .TaskFields(ts => ts.Id("taskId").Name("taskName").StartDate("startDate").EndDate("endDate").Progress("progress")
+        .Duration("duration").ParentID("parentID"))
+        .EditSettings(es => es.AllowEditing(true).Mode(Syncfusion.EJ2.Gantt.EditMode.Auto))
+        .Render()
+        )
+</div>
+
+<script>
+    
+</script>
