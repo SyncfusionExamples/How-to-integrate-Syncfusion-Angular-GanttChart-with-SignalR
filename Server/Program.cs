@@ -1,5 +1,5 @@
 using Newtonsoft.Json.Serialization;
-using signalR.Hubs;
+using GanttSignalRBackend.Hubs;
 using Syncfusion.EJ2.InteractiveChat;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,7 +49,7 @@ app.UseRouting();
 app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthorization();
 app.UseCors("AngularDevClient");
-app.MapHub<GanttHub>("/ganttHub"); // Map the ChatHub
+app.MapHub<GanttHub>("/ganttHub"); // Map the GanttHub
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

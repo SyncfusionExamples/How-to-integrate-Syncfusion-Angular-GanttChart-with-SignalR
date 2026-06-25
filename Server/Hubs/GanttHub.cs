@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 
-namespace signalR.Hubs
+namespace GanttSignalRBackend.Hubs
 {
     public class GanttHub : Hub
     {
