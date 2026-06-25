@@ -22,9 +22,9 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("AngularDevClient", policy =>
     {
-        policy.WithOrigins("http://localhost:4200") // Angular dev server
+        policy.WithOrigins("http://localhost:4200")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -48,7 +48,8 @@ app.UseCors("AllowAngularApp");
 app.UseRouting();
 app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthorization();
-app.MapHub<ChatHub>("/chatHub"); // Map the ChatHub
+app.UseCors("AngularDevClient");
+app.MapHub<GanttHub>("/ganttHub"); // Map the ChatHub
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { GanttAllModule} from '@syncfusion/ej2-angular-gantt';
+import { Component, ViewChild } from '@angular/core';
+import { GanttAllModule,GanttComponent} from '@syncfusion/ej2-angular-gantt';
 import { DataManager, WebApiAdaptor, UrlAdaptor } from '@syncfusion/ej2-data';
 import { RouterOutlet } from '@angular/router';
 import { HubConnection} from '@microsoft/signalr';
@@ -11,6 +11,8 @@ import * as signalR from '@microsoft/signalr';
   styleUrl: './app.component.css'
 })
 export class AppComponent {
+  @ViewChild('gantt')
+public ganttObj!: GanttComponent;
   public data?: Object;
     public taskSettings?: object;
     public columns?: object[];
@@ -22,6 +24,7 @@ export class AppComponent {
     private connection!: HubConnection;
     public toolbar?: string[];
     public editSettings?: object;
+     public splitterSettings?: object;
     public ngOnInit(): void {
         this.data = new DataManager({
             url: 'https://localhost:7297/Home/DataSource',
@@ -40,7 +43,7 @@ export class AppComponent {
         };
         this.columns = [
 		    { field: 'taskId', visible: false },
-            { field: 'taskName', headerText: 'Task Name', width: '250', clipMode: 'EllipsisWithTooltip' },
+            { field: 'taskName', headerText: 'Task Name', width: '130', clipMode: 'EllipsisWithTooltip' },
             { field: 'startDate' },
             { field: 'predecessor' },
             { field: 'duration' }
@@ -67,11 +70,14 @@ export class AppComponent {
             showDeleteConfirmDialog: true
         };
         this.toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll', 'Indent', 'Outdent'];
-        this.projectStartDate = new Date('02/24/2021');
-        this.projectEndDate = new Date('06/10/2021');
+        this.projectStartDate = new Date('01/01/2000');
+        this.projectEndDate = new Date('02/19/2000');
+        this.splitterSettings = {
+            position: "15%"
+        }
         
 this.connection = new signalR.HubConnectionBuilder()
-.withUrl("https://localhost:7297/chatHub", {
+.withUrl("https://localhost:7297/ganttHub", {
   withCredentials: true
 })
 .configureLogging(signalR.LogLevel.Information)
@@ -80,16 +86,15 @@ this.connection = new signalR.HubConnectionBuilder()
     }
     
 created() {
-    this.connection.on("ReceiveMessage", (message: string) => {
-      const gantt = (document.getElementsByClassName('e-gantt')[0] as HTMLFormElement)["ej2_instances"][0];
-      gantt.refresh();
+    this.connection.on("ReceiveTaskChange", (message: string) => {  
+      this.ganttObj.refresh();
     });
   
     this.connection.start()
       .then(() => {
         console.log("SignalR connection established successfully");
         // ✅ Only invoke after connection is started
-        return this.connection.invoke('SendMessage', "refreshPages");
+        return this.connection.invoke('BroadCastTaskChange', "JoinProject");
       })
       .catch((err: Error) => {
         console.error("Error establishing SignalR connection:", err.toString());
@@ -99,7 +104,7 @@ created() {
     actionComplete(args: any) {
         if (args.requestType === 'save' || args.requestType === "add" || args.requestType === 'delete') {
           //send a message from a connected client to all clients.
-          this.connection.invoke('SendMessage', "refreshPages")
+          this.connection.invoke('BroadCastTaskChange', "JoinProject")
             .catch((err:Error ) => {
               console.error(err.toString());
             });
