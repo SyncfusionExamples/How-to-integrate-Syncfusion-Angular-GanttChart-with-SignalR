@@ -1,6 +1,6 @@
 # Connecting Real-Time Data to Angular Gantt Chart Using SignalR
 
-The Syncfusion Angular Gantt Chart component supports real-time data binding using **SignalR**, a powerful library for bi-directional communication between servers and clients. This approach enables live data updates without page refreshes, making it ideal for applications that require instant information delivery such as stock tickers, live dashboards, and real-time notifications.
+The [Angular Gantt Chart](https://www.syncfusion.com/angular-components/angular-gantt-chart) component supports real-time data binding using **SignalR**, a powerful library for bi-directional communication between servers and clients. This approach enables live data updates without page refreshes, making it ideal for applications that require instant information delivery such as stock tickers, live dashboards, and real-time notifications.
 
 **What is SignalR?**
 
@@ -70,7 +70,7 @@ export class AppComponent {
 
 ### Step 4: Configure the Gantt Chart with Events
 
-To enable real-time collaboration, you need to integrate the Syncfusion Gantt Chart component into your Angular application and bind two important lifecycle events: created and actionComplete.
+To enable real-time collaboration, you need to integrate the Angular Gantt Chart component into your Angular application and bind two important lifecycle events: created and actionComplete.
 
 ```html
 <ejs-gantt id="ganttDefault" (actionComplete)="actionComplete($event)" (created)="created()">   
@@ -217,11 +217,11 @@ app.Run();
 
 This configuration registers SignalR services and configures CORS to allow connections from the Angular application.
 
-## Configure Syncfusion Angular Gantt with SignalR 
+## Configure Angular Gantt with SignalR 
 
 ### Step 1: Install and Configure Angular Gantt Components
 
-The Syncfusion Angular Gantt Chart package (@syncfusion/ej2-angular-gantt) has already been installed in your project via npm. 
+The Angular Gantt Chart package (@syncfusion/ej2-angular-gantt) has already been installed in your project via npm. 
 
 To make the Gantt Chart component available throughout your Angular application, you need to import the GanttModule and register it in your module file. 
 
@@ -252,7 +252,7 @@ export class AppModule {}
 ```
 ### Step 2: Update the Angular Gantt Component
 
-Update the sample to include a fully configured Syncfusion Gantt Chart with sample data binding. This step defines the basic structure of the Gantt component, including data source, task fields, and columns.
+Update the sample to include a fully configured Angular Gantt Chart with sample data binding. This step defines the basic structure of the Gantt component, including data source, task fields, and columns.
 
 ```html
 app.component.html
@@ -346,12 +346,6 @@ This guide demonstrates building a real-time collaborative Gantt Chart applicati
 
 This architecture enables teams to collaborate seamlessly with instant visibility of project changes and can be extended with database persistence, user-specific notifications, and conflict resolution features.
 
-## Reference Links
-
-- [Introduction to SignalR](https://learn.microsoft.com/en-us/aspnet/core/signalr/introduction)
-- [Angular Gantt Chart Component](https://ej2.syncfusion.com/angular/documentation/gantt/getting-started)
-- [Gantt API Reference](https://ej2.syncfusion.com/angular/documentation/api/gantt)
-
 ## Troubleshooting Common SignalR + Angular Gantt Issues
 
 This section covers the most frequent problems developers encounter when integrating SignalR with the Angular Gantt Chart component for real-time collaboration.
@@ -397,3 +391,10 @@ dotnet run
 5. **WebSocket Support**: Verify WebSocket protocol is enabled on your hosting environment.
 6. **Error Handling**: Implement comprehensive try-catch blocks and error logging.
 7. **Proper Disposal**: Clean up connections in `ngOnDestroy()` to prevent memory leaks.
+
+## Reference Links
+
+- [Explore Angular Gantt Chart](https://www.syncfusion.com/angular-components/angular-gantt-chart)
+- [Introduction to SignalR](https://learn.microsoft.com/en-us/aspnet/core/signalr/introduction)
+- [Angular Gantt Chart Component](https://ej2.syncfusion.com/angular/documentation/gantt/getting-started)
+- [Gantt API Reference](https://ej2.syncfusion.com/angular/documentation/api/gantt)
