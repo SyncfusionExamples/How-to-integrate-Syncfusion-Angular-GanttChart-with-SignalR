@@ -20,13 +20,13 @@ export class AppComponent implements OnInit {
   public toolbar!: string[];
   private connection!: signalR.HubConnection;
   private connectionId!: string;
-  private suppressBroadcast = false;
-  private projectId = "1"; // ✅ dynamic later (route, API, etc.)
+  private toRefreshGantt  = false;
+  private projectId = "1"; // dynamic later (route, API, etc.)
   ngOnInit(): void {
-    // ✅ DataManager
+    // DataManager
     this.data = new DataManager({
-      url: 'https://localhost:7297/Home/DataSource',
-      batchUrl: 'https://localhost:7297/Home/BatchUpdate',
+      url: 'https://localhost:xxxx/Home/DataSource', // Configure server-side port number
+      batchUrl: 'https://localhost:xxxx/Home/BatchUpdate',
       adaptor: new UrlAdaptor(),
       crossDomain: true
     });
@@ -53,9 +53,9 @@ export class AppComponent implements OnInit {
       allowTaskbarEditing: true
     };
     this.toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel'];
-    // ✅ SignalR setup
+    // SignalR setup
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl("https://localhost:7297/ganttHub")
+      .withUrl("https://localhost:xxxx/ganttHub") // Configure server-side port number
       .withAutomaticReconnect()
       .build();
   }
@@ -64,14 +64,14 @@ created() {
 
   this.connection.on("ReceiveTaskChange", (message: any) => {
 
-  console.log("✅ RECEIVED:", message);
+  console.log("SignalR connection established successfully", message);
 
   const { projectId, type, data, sender } = message;
 
     if (projectId !== this.projectId) return;
     if (sender === this.connectionId) return;
 
-    this.suppressBroadcast = true;
+    this.toRefreshGantt  = true;
 
     switch (type) {
       case 'add':
@@ -86,26 +86,27 @@ created() {
     }
   });
 
-  // ✅ IMPORTANT: make sequential flow
+  // IMPORTANT: make sequential flow
   this.connection.start()
     .then(() => {
+		
       this.connectionId = this.connection.connectionId!;
       
-      // ✅ RETURN this promise
+      // RETURN this promise
       return this.connection.invoke("JoinProject", this.projectId);
     })
     .then(() => {
-      console.log("✅ Joined group successfully");
+      console.log("Joined group successfully");
     })
     .catch(err => console.error(err));
 }
-  // ✅ Trigger when user changes data
+  // Trigger when user changes data
   actionComplete(args: any) {
     
-    // ✅ HARD BLOCK (THIS IS THE REAL FIX)
-    if (this.suppressBroadcast && (args.requestType == "save" || args.requestType == "add" || 
+    // HARD BLOCK (THIS IS THE REAL FIX)
+    if (this.toRefreshGantt  && (args.requestType == "save" || args.requestType == "add" || 
 args.requestType == "delete")) {
-      this.suppressBroadcast = false;
+      this.toRefreshGantt  = false;
       return;
     }
     switch (args.requestType) {
@@ -122,7 +123,7 @@ args.requestType == "delete")) {
   }
  
  
-// ✅ Global sender
+// Global sender
   private sendMessage(type: string, data: any) {
     const payload = {
       ProjectId: this.projectId.toString(),
@@ -130,11 +131,11 @@ args.requestType == "delete")) {
       Data: data,
       Sender: this.connectionId
     };
-    // ✅ IMPORTANT → pass TWO parameters
+    // IMPORTANT → pass TWO parameters
     this.connection.invoke(
       'BroadCastTaskChange',
-      this.projectId.toString(),  // ✅ routing
-      payload          // ✅ data
+      this.projectId.toString(),  // routing
+      payload          // data
     ).catch(err => console.error(err));
   }
 }
