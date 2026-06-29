@@ -1,6 +1,12 @@
-<ejs-gantt #gantt id="ganttDefault" height="430px" [dataSource]="data" [taskFields]="taskSettings" [columns]="columns"
-        [timelineSettings]="timelineSettings" [labelSettings]="labelSettings" [treeColumnIndex]="1" height="450px" [allowSelection]="true" 
-        [highlightWeekends]="true" [gridLines]="gridLines" [includeWeekend]="true" (actionComplete)="actionComplete($event)" (created)="created()" [editSettings]="editSettings" [toolbar]="toolbar">
+<ejs-gantt
+  #gantt
+  [dataSource]="data"
+  [taskFields]="taskSettings"
+  [columns]="columns"
+  [editSettings]="editSettings"
+  [toolbar]="toolbar"
+  (actionComplete)="actionComplete($event)"
+  >
 </ejs-gantt>
 
 <router-outlet />
