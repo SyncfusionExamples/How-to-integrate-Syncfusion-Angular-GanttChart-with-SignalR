@@ -1,113 +1,145 @@
-import { Component, ViewChild } from '@angular/core';
-import { GanttAllModule,GanttComponent} from '@syncfusion/ej2-angular-gantt';
-import { DataManager, WebApiAdaptor, UrlAdaptor } from '@syncfusion/ej2-data';
+import { Component, ViewChild, OnInit } from '@angular/core';
+import { GanttAllModule, GanttComponent } from '@syncfusion/ej2-angular-gantt';
+import { DataManager, UrlAdaptor } from '@syncfusion/ej2-data';
 import { RouterOutlet } from '@angular/router';
-import { HubConnection} from '@microsoft/signalr';
 import * as signalR from '@microsoft/signalr';
+
 @Component({
   selector: 'app-root',
+  standalone: true,
   imports: [GanttAllModule, RouterOutlet],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent {
-  @ViewChild('gantt')
-public ganttObj!: GanttComponent;
-  public data?: Object;
-    public taskSettings?: object;
-    public columns?: object[];
-    public timelineSettings?: object;
-    public gridLines?: string;
-    public labelSettings?: object;
-    public projectStartDate?: Date;
-    public projectEndDate?: Date;
-    private connection!: HubConnection;
-    public toolbar?: string[];
-    public editSettings?: object;
-     public splitterSettings?: object;
-    public ngOnInit(): void {
-        this.data = new DataManager({
-            url: 'https://localhost:7297/Home/DataSource',
-            batchUrl: 'https://localhost:7297/Home/BatchUpdate',
-            adaptor: new UrlAdaptor(),
-            crossDomain: true
-        });
-        this.taskSettings = {
-            id: 'taskId',
-            name: 'taskName',
-            startDate: 'startDate',
-            duration: 'duration',
-            progress: 'progress',
-            dependency: 'predecessor',
-            parentID:'parentID'
-        };
-        this.columns = [
-		    { field: 'taskId', visible: false },
-            { field: 'taskName', headerText: 'Task Name', width: '130', clipMode: 'EllipsisWithTooltip' },
-            { field: 'startDate' },
-            { field: 'predecessor' },
-            { field: 'duration' }
-        ];
-        this.timelineSettings = {
-            timelineUnitSize: 50,
-            topTier: {
-                unit: 'Month',
-                format: 'MMM dd, y',
-            },
-            bottomTier: {
-                unit: 'Day',
-            }
-        };
-        this.gridLines = 'Both';
-        this.labelSettings = {
-            leftLabel: 'taskName',
-        };
-        this.editSettings = {
-            allowAdding: true,
-            allowEditing: true,
-            allowDeleting: true,
-            allowTaskbarEditing: true,
-            showDeleteConfirmDialog: true
-        };
-        this.toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll', 'Indent', 'Outdent'];
-        this.projectStartDate = new Date('01/01/2000');
-        this.projectEndDate = new Date('02/19/2000');
-        this.splitterSettings = {
-            position: "15%"
-        }
-        
-this.connection = new signalR.HubConnectionBuilder()
-.withUrl("https://localhost:7297/ganttHub", {
-  withCredentials: true
-})
-.configureLogging(signalR.LogLevel.Information)
-.build();
+export class AppComponent implements OnInit {
 
-    }
-    
-created() {
-    this.connection.on("ReceiveTaskChange", (message: string) => {  
-      this.ganttObj.refresh();
+  @ViewChild('gantt')
+  public ganttObj!: GanttComponent;
+
+  public data!: Object;
+  public taskSettings!: object;
+  public columns!: object[];
+  public editSettings!: object;
+  public toolbar!: string[];
+
+  private connection!: signalR.HubConnection;
+  private connectionId!: string;
+  private suppressBroadcast = false;
+  ngOnInit(): void {
+
+    // ✅ DataManager
+    this.data = new DataManager({
+      url: 'https://localhost:7297/Home/DataSource',
+      batchUrl: 'https://localhost:7297/Home/BatchUpdate',
+      adaptor: new UrlAdaptor(),
+      crossDomain: true
     });
-  
+
+    this.taskSettings = {
+      id: 'taskId',
+      name: 'taskName',
+      startDate: 'startDate',
+      duration: 'duration',
+      progress: 'progress',
+      dependency: 'predecessor',
+      parentID: 'parentID'
+    };
+
+    this.columns = [
+      { field: 'taskId', headerText: 'ID', width: 80 },
+      { field: 'taskName', headerText: 'Task Name', width: 150 },
+      { field: 'startDate' },
+      { field: 'duration' },
+      { field: 'progress' }
+    ];
+
+    this.editSettings = {
+      allowAdding: true,
+      allowEditing: true,
+      allowDeleting: true,
+      allowTaskbarEditing: true
+    };
+
+    this.toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel'];
+
+    // ✅ SignalR setup
+    this.connection = new signalR.HubConnectionBuilder()
+      .withUrl("https://localhost:7297/ganttHub")
+      .withAutomaticReconnect()
+      .build();
+
+    this.startSignalR();
+  }
+
+  // ✅ Start SignalR connection
+  startSignalR() {
+
     this.connection.start()
       .then(() => {
-        console.log("SignalR connection established successfully");
-        // ✅ Only invoke after connection is started
-        return this.connection.invoke('BroadCastTaskChange', "JoinProject");
+        console.log('SignalR connection established successfully');
+        this.connectionId = this.connection.connectionId!;
       })
-      .catch((err: Error) => {
-        console.error("Error establishing SignalR connection:", err.toString());
-      });
+      .catch(err => console.error("Error establishing SignalR connection:", err.toString()));
+
+    // ✅ Receive updates
+    this.connection.on("ReceiveTaskChange", (message: any) => {
+
+      // ✅ Ignore self messages (KEY FIX)
+      if (message.sender === this.connectionId) {
+        return;
+      }
+      this.suppressBroadcast = true;   // ✅ BLOCK sending
+      const { type, data } = message;
+
+      if (type === 'add') {
+        this.ganttObj.addRecord(data);
+      }
+
+      if (type === 'update') {
+        this.ganttObj.updateRecordByID(data);
+      }
+
+      if (type === 'delete') {
+        this.ganttObj.deleteRecord(data.taskId);
+      }
+
+    });
   }
-  
-    actionComplete(args: any) {
-        if (args.requestType === 'save' || args.requestType === "add" || args.requestType === 'delete') {
-          //send a message from a connected client to all clients.
-          this.connection.invoke('BroadCastTaskChange', "JoinProject")
-            .catch((err:Error ) => {
-              console.error(err.toString());
-            });
-        }
+
+  // ✅ Trigger when user changes data
+  actionComplete(args: any) {
+    
+    // ✅ HARD BLOCK (THIS IS THE REAL FIX)
+    if (this.suppressBroadcast && (args.requestType == "save" || args.requestType == "add" || 
+args.requestType == "delete")) {
+      this.suppressBroadcast = false;
+      return;
     }
+
+    switch (args.requestType) {
+      case 'save':
+        this.sendMessage('update', args.data.taskData);
+        break;
+
+      case 'add':
+        this.sendMessage('add', args.newTaskData);
+        break;
+
+      case 'delete':
+        this.sendMessage('delete', args.data[0].taskData);
+        break;
+    }
+  }
+ 
+  // ✅ Common send method (GLOBAL)
+  private sendMessage(type: string, data: any) {
+    const payload = {
+      type,
+      data,
+      sender: this.connectionId
+    };
+
+    this.connection.invoke('BroadCastTaskChange', payload)
+      .catch(err => console.error(err));
+  }
 }
