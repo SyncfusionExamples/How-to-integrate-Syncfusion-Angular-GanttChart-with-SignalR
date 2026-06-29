@@ -76,10 +76,10 @@ export class AppComponent implements OnInit {
 
     this.connection.start()
       .then(() => {
-        console.log('✅ SignalR Connected');
+        console.log('SignalR connection established successfully');
         this.connectionId = this.connection.connectionId!;
       })
-      .catch(err => console.error(err));
+      .catch(err => console.error("Error establishing SignalR connection:", err.toString()));
 
     // ✅ Receive updates
     this.connection.on("ReceiveTaskChange", (message: any) => {
