@@ -113,38 +113,76 @@ export class AppComponent {
   public connection: HubConnection;
   
   created() {
-    this.connection = new HubConnectionBuilder()
-      .withUrl('https://localhost:7297/chatHub', {
-        withCredentials: true
-      })
-      .configureLogging(LogLevel.Information)
-      .build();
-    this.connection.on('ReceiveMessage', (message: string) => {
-      if (message === 'refreshPages') {
-        this.refreshGantt(); // Implement refresh logic
-      }
-    });
-    this.connection.start()
-      .then(() => {
-        console.log('SignalR connection established');
-        return this.connection.invoke('SendMessage', 'refreshPages');
-      })
-      .catch(err => console.error('SignalR Error: ', err));
-  }
-
-  actionComplete(args: any) {
-    if (args.requestType === 'save' || args.requestType === "add" || args.requestType === 'delete') {
-      this.connection.invoke('SendMessage', "refreshPages")
-        .catch((err: Error) => {
-          console.error(err.toString());
-        });
+	this.connection.on("ReceiveTaskChange", (message: any) => {
+	console.log("SignalR connection established successfully", message);
+	const { projectId, type, data, sender } = message;
+    if (projectId !== this.projectId) return;
+    if (sender === this.connectionId) return;
+    this.toRefreshGantt  = true;
+    switch (type) {
+      case 'add':
+        this.ganttObj.addRecord(data);
+        break;
+      case 'update':
+        this.ganttObj.updateRecordByID(data);
+        break;
+      case 'delete':
+        this.ganttObj.deleteRecord(data.taskId);
+        break;
     }
-  }
+	});
 
-  refreshGantt() {   
-    // Logic to refresh Gantt data (e.g., rebind dataSource)
-    console.log('Refreshing Gantt...');
-  }
+		// IMPORTANT: make sequential flow
+		this.connection.start()
+			.then(() => {
+			this.connectionId = this.connection.connectionId!;
+			// RETURN this promise
+			return this.connection.invoke("JoinProject", this.projectId);
+		})
+		.then(() => {
+			console.log("Joined group successfully");
+		})
+		.catch(err => console.error(err));
+	}
+	
+	// Trigger when user changes data
+	actionComplete(args: any) {
+    
+		// HARD BLOCK (THIS IS THE REAL FIX)
+		if (this.toRefreshGantt  && (args.requestType == "save" || args.requestType == "add" || 
+		args.requestType == "delete")) {
+			this.toRefreshGantt  = false;
+			return;
+		}
+		switch (args.requestType) {
+			case 'save':
+				this.sendMessage('update', args.data.taskData);
+				break;
+			case 'add':
+				this.sendMessage('add', args.newTaskData);
+				break;
+			case 'delete':
+				this.sendMessage('delete', args.data[0].taskData);
+				break;
+		}
+	}
+ 
+ 
+	// Global sender
+	private sendMessage(type: string, data: any) {
+		const payload = {
+			ProjectId: this.projectId.toString(),
+			Type: type,
+			Data: data,
+			Sender: this.connectionId
+		};
+		// IMPORTANT → pass TWO parameters
+		this.connection.invoke(
+			'BroadCastTaskChange',
+			this.projectId.toString(),  // routing
+			payload          // data
+		).catch(err => console.error(err));
+	}
 }
 ```
 
@@ -166,18 +204,32 @@ Create an ASP.NET Core Web API project to host the SignalR hub. Refer to the [Ge
 Create a `Hubs` folder in the project root and add `ChatHub.cs`:
 
 ```csharp
-ChatHub.cs
+GanttHub.cs
 
 using Microsoft.AspNetCore.SignalR;
 namespace GanttSignalRBackend.Hubs   
 {
-    public class ChatHub : Hub
-    {
-        public async Task SendMessage(string message)
-        {
-            await Clients.All.SendAsync("ReceiveMessage", message);
-        }
-    }
+    public class GanttHub : Hub
+	{
+
+		public async Task JoinProject(string projectId)
+		{
+			await Groups.AddToGroupAsync(Context.ConnectionId, projectId);
+		}
+
+		public async Task BroadCastTaskChange(string projectId, TaskChange change)
+		{
+			await Clients.OthersInGroup(projectId)
+                     .SendAsync("ReceiveTaskChange", change);
+		}
+	}
+	public class TaskChange
+	{
+		public string ProjectId { get; set; }
+		public string Type { get; set; }
+		public object Data { get; set; }
+		public string Sender { get; set; }
+	}
 }
 ```
 
@@ -197,7 +249,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("https://localhost:4200") // Angular dev server URL
+        policy.WithOrigins("https://localhost:xxxx") // Angular dev server URL
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -267,14 +319,50 @@ app.component.html
 </ejs-gantt> 
 ```
 
-### Step 3: Implement Real-Time Refresh
+### Step 3: Implement Real-Time Gantt Updates
 
-To ensure all connected users see the latest project state immediately after any change, implement the refreshGantt() method in your Angular component. This method is responsible for updating the Gantt Chart’s data when a refresh notification is received from SignalR.
+To keep all users in sync, listen for updates from SignalR and apply only the necessary changes directly to the Gantt Chart. This approach ensures that data updates are reflected instantly without reloading the full dataset.
 
 ```ts
-refreshGantt() {
-  // If data is from API, fetch again: this.ganttInstance.dataSource = await fetchData();
-  this.ganttInstance.refresh(); // Refresh UI
+created() {
+
+  this.connection.on("ReceiveTaskChange", (message: any) => {
+
+  console.log("SignalR connection established successfully", message);
+
+  const { projectId, type, data, sender } = message;
+
+    if (projectId !== this.projectId) return;
+    if (sender === this.connectionId) return;
+
+    this.toRefreshGantt  = true;
+
+    switch (type) {
+      case 'add':
+        this.ganttObj.addRecord(data);
+        break;
+      case 'update':
+        this.ganttObj.updateRecordByID(data);
+        break;
+      case 'delete':
+        this.ganttObj.deleteRecord(data.taskId);
+        break;
+    }
+  });
+
+  // IMPORTANT: make sequential flow
+  this.connection.start()
+    .then(() => {
+		
+      this.connectionId = this.connection.connectionId!;
+      
+      // RETURN this promise
+      return this.connection.invoke("JoinProject", this.projectId);
+    })
+    .then(() => {
+      console.log("Joined group successfully");
+    })
+    .catch(err => console.error(err));
 } 
 ```
 ## How Real-Time Sync Works
@@ -313,7 +401,7 @@ dotnet build
 dotnet run
 ``` 
 
-The backend starts on `https://localhost:7297`.
+The backend starts on `https://localhost:xxxx`.
 
 **Step 3: Run the Angular project**  
 
@@ -321,11 +409,11 @@ The backend starts on `https://localhost:7297`.
 ng serve
 ```
 
-The Angular application will be accessible at http://localhost:4200. 
+The Angular application will be accessible at http://localhost:xxxx. 
 
 **Step 4: Test Real-Time Sync**
 
-- Open http://localhost:4200 in two separate browser tabs.
+- Open http://localhost:xxxx in two separate browser tabs.
 - In the first tab, perform an action such as adding, editing, or deleting a task. 
 - Observe that the second tab automatically updates with the changes in real time without requiring a manual page refresh.
 
@@ -366,7 +454,7 @@ When troubleshooting SignalR issues with Angular Gantt, follow these steps syste
 ```bash
 # Ensure your .NET backend is running
 dotnet run
-# Look for output: "Now listening on: https://localhost:7297"
+# Look for output: "Now listening on: https://localhost:xxxx"
 ```
 
 **2. Check Browser Console**
