@@ -156,20 +156,20 @@ export class AppComponent {
 		}
 		switch (args.requestType) {
 			case 'save':
-				this.sendMessage('update', args.data.taskData);
+				this.broadcastTaskUpdate('update', args.data.taskData);
 				break;
 			case 'add':
-				this.sendMessage('add', args.newTaskData);
+				this.broadcastTaskUpdate('add', args.newTaskData);
 				break;
 			case 'delete':
-				this.sendMessage('delete', args.data[0].taskData);
+				this.broadcastTaskUpdate('delete', args.data[0].taskData);
 				break;
 		}
 	}
  
  
 	// Global sender
-	private sendMessage(type: string, data: any) {
+	private broadcastTaskUpdate(type: string, data: any) {
 		const payload = {
 			ProjectId: this.projectId.toString(),
 			Type: type,
@@ -190,7 +190,7 @@ export class AppComponent {
 
 - **on()**: Registers a client-side listener for messages broadcast by the server. In this implementation, it listens for the `ReceiveMessage` event sent from the hub. When a message is received (e.g., "refreshPages"), the callback function executes and triggers a refresh of the Gantt Chart to reflect the latest changes made by any user.
 
-- **invoke()**: Allows the client to call a method on the server-side hub. In this implementation, it invokes the `SendMessage` method on the hub to broadcast a refresh notification to all connected clients whenever a significant change occurs in the Gantt Chart (e.g., adding, editing, or deleting a task).
+- **invoke()**: Allows the client to call a method on the server-side hub. In this implementation, it invokes the `broadcastTaskUpdate` method on the hub to broadcast a refresh notification to all connected clients whenever a significant change occurs in the Gantt Chart (e.g., adding, editing, or deleting a task).
 
 
 ## Create the Background Service
@@ -233,7 +233,7 @@ namespace GanttSignalRBackend.Hubs
 }
 ```
 
-The `SendMessage` method broadcasts a message (e.g., "refreshPages") to all connected clients whenever a change occurs in the Gantt Chart. 
+The `broadcastTaskUpdate` method broadcasts a message (e.g., "refreshPages") to all connected clients whenever a change occurs in the Gantt Chart. 
 
 ### Step 3: Configure SignalR Services and CORS
 
@@ -375,7 +375,7 @@ When a user makes a change such as editing, adding, or deleting a task in the Ga
 
 **2. Broadcast the Change**
 
-Inside the `actionComplete` handler, the client checks the `requestType` property (e.g., add, edit, save, delete). If a meaningful change has occurred, the client calls `invoke('SendMessage', 'refreshPages')` on the SignalR connection. This sends a lightweight notification to the server-side hub.
+Inside the `actionComplete` handler, the client checks the `requestType` property (e.g., add, edit, save, delete). If a meaningful change has occurred, the client calls `invoke('broadcastTaskUpdate', 'refreshPages')` on the SignalR connection. This sends a lightweight notification to the server-side hub.
 
 **3. Server Broadcasts to All Clients**
 

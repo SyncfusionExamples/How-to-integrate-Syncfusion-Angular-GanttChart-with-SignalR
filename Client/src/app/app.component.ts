@@ -111,20 +111,20 @@ args.requestType == "delete")) {
     }
     switch (args.requestType) {
       case 'save':
-        this.sendMessage('update', args.data.taskData);
+        this.broadcastTaskUpdate('update', args.data.taskData);
         break;
       case 'add':
-        this.sendMessage('add', args.newTaskData);
+        this.broadcastTaskUpdate('add', args.newTaskData);
         break;
       case 'delete':
-        this.sendMessage('delete', args.data[0].taskData);
+        this.broadcastTaskUpdate('delete', args.data[0].taskData);
         break;
     }
   }
  
  
 // Global sender
-  private sendMessage(type: string, data: any) {
+  private broadcastTaskUpdate(type: string, data: any) {
     const payload = {
       ProjectId: this.projectId.toString(),
       Type: type,
